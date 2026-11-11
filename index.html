@@ -98,16 +98,21 @@
     .animate-card-in { animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
     @media print {
-  #app-scaler { transform: none !important; }
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
-  html, body {
-    height: auto !important;
-    overflow: visible !important;
-    background: #fff !important;
-  }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      #app-scaler { transform: none !important; }
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      html, body {
+        height: auto !important;
+        overflow: visible !important;
+        background: #fff !important;
+      }
       body * { visibility: hidden !important; }
       .print-active-target, .print-active-target * { visibility: visible !important; }
       .print-active-target {
@@ -119,8 +124,6 @@
         box-shadow: none !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
       }
       /* ID Card Print: Exact pocket size on single page with fixed height */
       .id-card-print-target {
@@ -444,7 +447,7 @@
 
             <div class="text-xs text-slate-600 bg-amber-50/90 p-4 rounded-2xl border border-amber-200 space-y-1.5">
               <p class="font-bold text-amber-900">📌 Anti-Cheating & Exam Regulations:</p>
-              <p>1. Tab switching is monitored. 3 strikes will result in automatic exam submission.</p>
+              <p>1. Tab switching is monitored. 5 strikes will result in automatic exam submission.</p>
               <p>2. Only candidates authorized by faculty can sit for this examination paper.</p>
             </div>
 
@@ -466,7 +469,7 @@
             </div>
 
             <div id="arena-tab-warning" class="hidden px-3 py-1 bg-rose-100 text-rose-700 border border-rose-300 rounded-xl text-xs font-bold animate-pulse">
-              ⚠️ Tab Switch Warning: <span id="arena-tab-warning-count">0</span>/3
+              ⚠️ Tab Switch Warning: <span id="arena-tab-warning-count">0</span>/5
             </div>
 
             <div class="flex items-center gap-2">
@@ -1213,15 +1216,20 @@
           <label class="font-bold text-slate-600 block mb-0.5">Select Batch & Session</label>
           <select id="st-in-batch" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl font-bold bg-slate-50"></select>
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-3 gap-2">
           <div>
             <label class="font-bold text-slate-600 block mb-0.5">Course</label>
-            <input type="text" id="st-in-course" placeholder="e.g. IT" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl">
+            <input type="text" id="st-in-course" placeholder="e.g. IT" class="w-full px-2 py-1.5 border border-slate-200 rounded-xl">
           </div>
+
           <div>
             <label class="font-bold text-emerald-700 block mb-0.5">Lab PC</label>
-            <input type="text" id="st-in-pc" placeholder="e.g. PC-01" class="w-full px-3 py-1.5 border border-slate-200 rounded-xl font-mono uppercase font-bold">
+            <input type="text" id="st-in-pc" placeholder="e.g. PC-01" class="w-full px-2 py-1.5 border border-slate-200 rounded-xl font-mono uppercase font-bold">
           </div>
+          <div>
+    <label class="font-bold text-rose-700 block mb-0.5">Blood Grp</label>
+    <input type="text" id="st-in-blood" placeholder="O+" class="w-full px-2 py-1.5 border border-slate-200 rounded-xl font-bold">
+  </div>
         </div>
         <div>
           <label class="font-bold text-slate-600 block mb-0.5">Phone Number</label>
@@ -1601,14 +1609,16 @@
 
     // --- 1. CLOUD SYNCHRONIZATION SETUP ---
     const firebaseConfig = {
-      apiKey: "AIzaSyCZ6L6a3-J3o7GbIA9BS74E4qbfTiYmWA8",
-      authDomain: "institute-of-education.firebaseapp.com",
-      databaseURL: "https://institute-of-education-default-rtdb.firebaseio.com",
-      projectId: "institute-of-education",
-      storageBucket: "institute-of-education.firebasestorage.app",
-      messagingSenderId: "435615695121",
-      appId: "1:435615695121:web:b3174959eda69c35598cb0"
-    };
+  apiKey: "AIzaSyD8B01P77ykgDzUtywl_TrD8SAdvsGQS2Q",
+  authDomain: "institute-web-ef9ad.firebaseapp.com",
+  databaseURL: "https://institute-web-ef9ad-default-rtdb.firebaseio.com",
+  projectId: "institute-web-ef9ad",
+  storageBucket: "institute-web-ef9ad.firebasestorage.app",
+  messagingSenderId: "107800637694",
+  appId: "1:107800637694:web:1dedec95a457a8af2f35af",
+  measurementId: "G-Z98MNH7WKS"
+};
+
 
     let db = null;
     let isCloudLive = false;
@@ -2098,22 +2108,25 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
         document.removeEventListener('visibilitychange', handleTabVisibility);
       }
 
-      handleTabVisibility = function() {
-        if (document.getElementById('cbt-sub-arena').classList.contains('hidden')) return;
-        if (document.visibilityState === 'hidden') {
-          cbtTabWarnings++;
-          const warningBadge = document.getElementById('arena-tab-warning');
-          const countSpan = document.getElementById('arena-tab-warning-count');
-          if (countSpan) countSpan.innerText = cbtTabWarnings;
-          if (warningBadge) warningBadge.classList.remove('hidden');
+      let lastWarningTime = 0;
+handleTabVisibility = function() {
+  if (document.getElementById('cbt-sub-arena').classList.contains('hidden')) return;
+  const now = Date.now();
+  if (document.visibilityState === 'hidden' && (now - lastWarningTime > 3000)) {
+    lastWarningTime = now;
+    cbtTabWarnings++;
+    const warningBadge = document.getElementById('arena-tab-warning');
+    const countSpan = document.getElementById('arena-tab-warning-count');
+    if (countSpan) countSpan.innerText = cbtTabWarnings;
+    if (warningBadge) warningBadge.classList.remove('hidden');
 
-          if (cbtTabWarnings >= 3) {
-            document.removeEventListener('visibilitychange', handleTabVisibility);
-            alert("🚨 Anti-Cheating Protocol: You switched tabs 3 times! Exam is auto-submitting.");
-            finishCbtExam();
-          }
-        }
-      };
+    if (cbtTabWarnings >= 5) { // 3 ki jagah 5 strikes dein
+      document.removeEventListener('visibilitychange', handleTabVisibility);
+      alert("🚨 Anti-Cheating Protocol: You switched tabs 5 times! Exam is auto-submitting.");
+      finishCbtExam();
+    }
+  }
+};
       document.addEventListener('visibilitychange', handleTabVisibility);
     }
 
@@ -2685,6 +2698,7 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
       document.getElementById('st-in-name').value = '';
       document.getElementById('st-in-course').value = '';
       document.getElementById('st-in-pc').value = '';
+      document.getElementById('st-in-blood').value = 'O+';
       document.getElementById('st-in-phone').value = '';
       document.getElementById('st-in-photo').value = '';
       document.getElementById('st-in-address').value = '';
@@ -2714,6 +2728,7 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
       document.getElementById('st-in-phone').value = student.phone || '';
       document.getElementById('st-in-photo').value = '';
       document.getElementById('st-in-address').value = student.address || '';
+      document.getElementById('st-in-blood').value = student.blood || 'O+';
 
       populateBatchDropdownForStudent(student.batchId);
       document.getElementById('modal-student').classList.remove('hidden');
@@ -2729,6 +2744,7 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
       const batchId = document.getElementById('st-in-batch').value;
       const course = document.getElementById('st-in-course').value.trim() || 'Information Technology';
       const pc = document.getElementById('st-in-pc').value.trim() || 'PC-01';
+      const blood = document.getElementById('st-in-blood').value.trim() || 'O+';
       const phone = document.getElementById('st-in-phone').value.trim();
       const address = document.getElementById('st-in-address').value.trim();
       
@@ -2742,6 +2758,7 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
             student.batchId = batchId;
             student.course = course;
             student.pc = pc;
+            student.blood = blood; // 👈 YE LINE ADD KAREIN
             student.phone = phone;
             if (photoBase64) student.photo = photoBase64;
             student.address = address;
@@ -2752,7 +2769,7 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
             return;
           }
           students.push({ 
-            id, name, batchId, course, pc, phone, 
+            id, name, batchId, course, pc, phone, blood, // 👈 YAHAN blood ADD KAREIN
             photo: photoBase64 || '', 
             address, timing: '10:00 AM - 11:30 AM' 
           });
@@ -2848,19 +2865,21 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
             const data = new Uint8Array(evt.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-            for (let i = 1; i < rows.length; i++) {
-              const r = rows[i];
-              const id = String(r[0] || '').trim();
-              const name = String(r[1] || '').trim();
-              if (id && name) {
-                tempParsedRoster.push({
-                  id, name,
-                  course: String(r[2] || 'Information Technology').trim(),
-                  pc: r[3] ? String(r[3]).trim() : `PC-${String(students.length + tempParsedRoster.length + 1).padStart(2,'0')}`,
-                  phone: String(r[4] || '').trim()
-                });
-              }
-            }
+            // Replace this block inside handleBulkStudentUploadPrecheck:
+for (let i = 1; i < rows.length; i++) {
+  const r = rows[i];
+  const id = String(r[0] || '').trim();
+  const name = String(r[1] || '').trim();
+  if (id && name) {
+    // Agar export kiya hua file hai toh columns align karein
+    tempParsedRoster.push({
+      id, name,
+      course: String(r[3] || r[2] || 'Information Technology').trim(),
+      pc: String(r[4] || r[3] || `PC-${String(students.length + tempParsedRoster.length + 1).padStart(2,'0')}`).trim(),
+      phone: String(r[5] || r[4] || '').trim()
+    });
+  }
+}
             openRosterPreviewModal();
           } catch(err) { alert("Error reading Excel sheet."); }
         };
@@ -3257,18 +3276,22 @@ if (currentCbtTest.accessControlled === true && Array.isArray(currentCbtTest.all
     }
 
     function openTestAccessControlModal(testId) {
-      activeAccessTestId = testId;
-      const t = cbtTests.find(item => item.id === testId);
-      if (!t) return;
+  activeAccessTestId = testId;
+  const t = cbtTests.find(item => item.id === testId);
+  if (!t) return;
 
-      document.getElementById('access-test-title').innerText = `${t.title} (Date: ${t.date || 'TBD'})`;
-      if (!Array.isArray(t.allowedStudents)) {
-        t.allowedStudents = (t.accessControlled === true) ? [] : students.map(s => String(s.id));
-      }
+  // Search input ko pehle blank karein taaki purana filter na rahe
+  const searchInput = document.getElementById('access-search-input');
+  if (searchInput) searchInput.value = '';
 
-      renderAccessControlStudents(t.allowedStudents);
-      document.getElementById('modal-test-access').classList.remove('hidden');
-    }
+  document.getElementById('access-test-title').innerText = `${t.title} (Date: ${t.date || 'TBD'})`;
+  if (!Array.isArray(t.allowedStudents)) {
+    t.allowedStudents = (t.accessControlled === true) ? [] : students.map(s => String(s.id));
+  }
+
+  renderAccessControlStudents(t.allowedStudents);
+  document.getElementById('modal-test-access').classList.remove('hidden');
+}
 
     function renderAccessControlStudents(allowedList) {
       const container = document.getElementById('access-students-container');
@@ -3581,11 +3604,42 @@ function toggleAllTestAccess(check) {
     }
 
     function updateCorrectAnswerKey(testId, qIndex, newKey) {
-      const t = cbtTests.find(item => item.id === testId);
-      if (!t || !t.questions[qIndex]) return;
-      t.questions[qIndex].correct = newKey;
-      persistAll();
-    }
+  const t = cbtTests.find(item => item.id === testId);
+  if (!t || !t.questions[qIndex]) return;
+  t.questions[qIndex].correct = newKey;
+
+  // Agar submissions ho chuke hain, toh unke marks re-calculate karein
+  if (t.submissions) {
+    const markPerQ = Number(t.markPerQ) || 2;
+    const totalMax = t.questions.length * markPerQ;
+
+    Object.keys(t.submissions).forEach(stId => {
+      const sub = t.submissions[stId];
+      if (sub.answersGiven) {
+        let correct = 0;
+        let wrong = 0;
+        t.questions.forEach((q, i) => {
+          const a = sub.answersGiven[i];
+          if (a === q.correct) correct++;
+          else if (a) wrong++;
+        });
+        sub.score = correct * markPerQ;
+        sub.correct = correct;
+        sub.wrong = wrong;
+        sub.percentage = totalMax > 0 ? Math.round((sub.score / totalMax) * 100) : 0;
+
+        // Marksheet test me bhi update karein
+        const syncedMs = msTests.find(m => m.id === t.id);
+        if (syncedMs && syncedMs.marks && syncedMs.marks[stId]) {
+          syncedMs.marks[stId]["CBT Objective Evaluation"] = sub.score;
+          syncedMs.marks[stId].remark = `CBT Result: ${sub.percentage}% Score (${correct} Correct)`;
+        }
+      }
+    });
+  }
+
+  persistAll();
+}
 
     // --- MARKSHEET EVALUATION WITH SEARCH & TEST-SPECIFIC EXAMINERS ---
     function renderAdminMarksheetGradingTable() {
@@ -3811,7 +3865,11 @@ function toggleAllTestAccess(check) {
       if (!file) return;
       const examId = document.getElementById('adm-ms-exam-selector').value;
       const test = msTests.find(t => t.id === examId);
-      if (!test) return;
+      if (!test) {
+  alert("⚠️ Kripya pehle upar dropdown se ek Examination select karein jisme marks upload karne hain!");
+  e.target.value = "";
+  return;
+}
 
       const reader = new FileReader();
       reader.onload = function(evt) {
