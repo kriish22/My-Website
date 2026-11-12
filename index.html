@@ -1727,7 +1727,14 @@
         db.ref('institute_data').set({
           students, batches, cbtTests, msTests, docBranding, helpdeskConfig,
           lastSync: new Date().toISOString()
-        }).catch(() => {});
+        })
+        .then(() => {
+          console.log("✅ Data Firebase par successfully save ho gaya!");
+        })
+        .catch((error) => {
+          console.error("❌ Firebase Save Error:", error);
+          alert("Firebase par data save nahi ho paya! Rules check karein.");
+        });
       }
     }
 
